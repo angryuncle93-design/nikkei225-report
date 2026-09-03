@@ -2,10 +2,11 @@ name: Nikkei225 Daily Report
 
 on:
   schedule:
-    # 平日 JST 17:35（UTC 08:35）に自動実行（手口データ更新直後向け）
+    # 1回目: 平日 JST 17:35（UTC 08:35）- 日中手口更新後
     - cron: '35 8 * * 1-5'
-  workflow_dispatch: # Actionsタブから手動即時実行できるボタン
-
+    # 2回目: 平日 JST 08:35（UTC 23:35 前日）- 確定建玉残高更新後
+    - cron: '35 23 * * 0-4'
+  workflow_dispatch: # 手動実行ボタン
 jobs:
   report:
     runs-on: ubuntu-latest
