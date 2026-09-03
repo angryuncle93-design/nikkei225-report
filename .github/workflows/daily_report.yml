@@ -1,0 +1,30 @@
+name: Nikkei225 Daily Report
+
+on:
+  schedule:
+    # 平日 JST 17:35（UTC 08:35）に自動実行（手口データ更新直後向け）
+    - cron: '35 8 * * 1-5'
+  workflow_dispatch: # Actionsタブから手動即時実行できるボタン
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run analysis script
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python main.py
