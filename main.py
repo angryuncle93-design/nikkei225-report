@@ -4,6 +4,7 @@ import time
 import requests
 import pandas as pd
 from google import genai
+from google.genai import errors
 
 # 環境変数（GitHub Secrets）から取得
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -41,7 +42,7 @@ market_data = f"""
 {df_sector.to_string()}
 """
 
-# 2. Geminiによる分析
+# 2. Geminiによる分析（リトライ処理付き）
 print("Geminiによる相場分析中...")
 client = genai.Client(api_key=GEMINI_API_KEY)
 
@@ -58,16 +59,32 @@ prompt = f"""
 4. 実践的なトレード戦略
 """
 
-try:
-    response = client.models.generate_content(
-        model="gemini-3.6-flash",
-        contents=prompt,
-    )
-    report_text = response.text
-    print("分析完了")
-except Exception as e:
-    print("Gemini分析エラー:", e)
-    raise e
+response = None
+max_retries = 3
+models_to_try = ["gemini-3.6-flash", "gemini-3.8-flash"]
+
+for target_model in models_to_try:
+    print(f"モデル試行中: {target_model}")
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = client.models.generate_content(
+                model=target_model,
+                contents=prompt,
+            )
+            print("分析完了！")
+            break
+        except Exception as e:
+            print(f"[{target_model}] 試行 {attempt}/{max_retries} 失敗: {e}")
+            if attempt < max_retries:
+                print("15秒待機して再試行します...")
+                time.sleep(15)
+    if response is not None:
+        break
+
+if response is None or not hasattr(response, 'text'):
+    raise RuntimeError("すべてのモデルと再試行でGeminiの生成に失敗しました。")
+
+report_text = response.text
 
 # 3. Discordへ分割送信
 chunk_size = 1900
